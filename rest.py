@@ -2,6 +2,10 @@
 from flask import Flask,jsonify,request
 from pymongolab import Connection
 
+#pip install Flask-PyMongo
+from flask.ext.pymongo import PyMongo
+
+
 app = Flask(__name__)
 
 #This is makes the connection to Mongolabs
@@ -14,7 +18,7 @@ db = connection.hw1
 collection = db.recipes
 
 #Just to initialize our sample database
-recipes = [
+test_recipes = [
 	
 	{
 		'id' : 1,
@@ -40,10 +44,20 @@ except:
 col = collection.find_one()
 print(col)
 
+# #this GET returns all of the recipes
+# @app.route('/api/1.0/recipes', methods=['GET'])
+# def get_recipes():
+#     return jsonify({'recipes':test_recipes})
+
+
 #this GET returns all of the recipes
 @app.route('/api/1.0/recipes', methods=['GET'])
 def get_recipes():
-    return jsonify({'recipes':recipes})
+    total = []
+    for recipe in collection.find():
+    	total.append(recipe)
+    
+ 	return total  
 
 #this GET returns a specific recipe based on the ID 
 @app.route('/api/1.0/recipes/<int:recipe_id>',methods=['GET'])
