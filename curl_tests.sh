@@ -5,4 +5,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '{"title":"fish and chips
 
 #Modify a recipe with a put:
 
-curl -i -H "Content-Type: application/json" -X PUT -d '{"stars":10}' http://localhost:5000/todo/api/v1.0/recipes/1
+curl -i -H "Content-Type: application/json" -X PUT -d '{"stars":10}' http://localhost:5000/api/1.0/recipes/1
+
+#Delete a recipe with a DELETE
+curl -i -H "Content-Type: application/json" -X DELETE -d '{"done":true}' http://localhost:5000/api/1.0/recipes/
