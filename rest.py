@@ -57,6 +57,13 @@ def modify_recipe(recipe_id):
 	recipe[0]['stars'] = request.json.get('stars', recipe[0]['stars'])
 	return jsonify({'recip': recipe[0]})
 
+# This is DELETE request to delete a recipe based on the ID
+@app.route('/api/1.0/recipies/<int:recipe_id>',methods=['DELETE'])
+def delete_recipe(recipe_id):
+    recipe = [recipe for recipe in recipes if recipe['id'] == recipe_id]
+    recipies.remove(recipe[0])
+    return jsonify({'result':True})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
