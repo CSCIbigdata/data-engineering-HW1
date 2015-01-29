@@ -1,7 +1,17 @@
 #!flask/bin/python
 from flask import Flask,jsonify,request
+from pymongolab import Connection
 
 app = Flask(__name__)
+
+#This is makes the connection to Mongolabs
+connection = Connection("15bcI8yedImO3qWvB6bZncbz_v3VONO3")
+
+#This is the connection to our DB called "hw1"
+db = connection.hw1
+
+#This is the actual collection/table called recipes
+collection = db.recipes
 
 #Just to initialize our sample database
 recipes = [
@@ -18,8 +28,17 @@ recipes = [
 		'description' : u'a bad german dish! meat is murder',
 		'stars' : 4
 	}
-
 ]
+
+try: 
+	collection.insert(recipes)
+except: 
+	print("already initialized the DB")
+
+
+# To figure out how to interact wit the DB check out: http://api.mongodb.org/python/current/tutorial.html
+col = collection.find_one()
+print(col)
 
 #this GET returns all of the recipes
 @app.route('/api/1.0/recipes', methods=['GET'])
