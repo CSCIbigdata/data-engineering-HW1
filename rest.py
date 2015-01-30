@@ -1,101 +1,102 @@
 #!flask/bin/python
-from flask import Flask,jsonify,request
+from flask import Flask,jsonify,request, make_response
 from pymongolab import Connection
-
-#pip install Flask-PyMongo
-from flask.ext.pymongo import PyMongo
-
 
 app = Flask(__name__)
 
-#This is makes the connection to Mongolabs
+#This makes the connection to Mongolabs
 connection = Connection("15bcI8yedImO3qWvB6bZncbz_v3VONO3")
-
 #This is the connection to our DB called "hw1"
 db = connection.hw1
 
-#This is the actual collection/table called recipes
-collection = db.recipes
-
-#Just to initialize our sample database
-test_recipes = [
-	
-	{
-		'id' : 1,
-		'title' : u'lasagna',
-		'description' : u'a yummy italian dish!',
-		'stars' : 3
-	},
-	{
-		'id' : 2,
-		'title' : u'sausage',
-		'description' : u'a bad german dish! meat is murder',
-		'stars' : 4
-	}
-]
-
-try: 
-	collection.insert(recipes)
-except: 
-	print("already initialized the DB")
-
-
-# To figure out how to interact wit the DB check out: http://api.mongodb.org/python/current/tutorial.html
-col = collection.find_one()
-print(col)
-
-# #this GET returns all of the recipes
-# @app.route('/api/1.0/recipes', methods=['GET'])
-# def get_recipes():
-#     return jsonify({'recipes':test_recipes})
-
+#calculate count, this is a one time cost
+count = db.recipes.find()[db.recipes.count() -1]['id']
 
 #this GET returns all of the recipes
 @app.route('/api/1.0/recipes', methods=['GET'])
 def get_recipes():
-    total = []
-    for recipe in collection.find():
-    	total.append(recipe)
-    
- 	return total  
+	recipelist = []
+	for recipe in db.recipes.find():
+		recipelist.append ({
+				'id': recipe[u'id'],
+				'title': recipe[u'title'],
+				'description' : recipe[u'description'],
+				'stars' : recipe[u'stars']
+		})
+	return jsonify({'recipe':recipelist})
 
 #this GET returns a specific recipe based on the ID 
 @app.route('/api/1.0/recipes/<int:recipe_id>',methods=['GET'])
 def get_recipe(recipe_id):
-	recipe = [recipe for recipe in recipes if recipe['id'] == recipe_id]
-	return jsonify({'recipe':recipe[0]})
+	try:
+		col = db.recipes.find_one({'id' : recipe_id})
+	
+		recipe = {
+				'id': col[u'id'],
+				'title': col[u'title'],
+				'description' : col[u'description'],
+				'stars' : col[u'stars']
+		}
+	except TypeError:
+		return not_found("Out of Range")
+	return jsonify(**recipe)
 
 #this is a POST request used to create a recipe see the curl_tests to see how to make a new object
 @app.route('/api/1.0/recipes',methods=['POST'])
 def create_recipe():
 	if not request.json or not 'title' in request.json:
 		return "BAD POST"
-
+	global count
+	count = count + 1
 	recipe = {
-		'id': recipes[-1]['id'] + 1,
+		'id': count,
 		'title': request.json['title'],
 		'description' : request.json.get('description'),
 		'stars' : request.json.get('stars')
 	}
 
-	recipes.append(recipe)
+	db.recipes.insert(recipe)
 	return jsonify({'recipe': recipe}),201
 
 # This is PUT request to modify an object 
 @app.route('/api/1.0/recipes/<int:recipe_id>',methods=['PUT'])
 def modify_recipe(recipe_id):
-	recipe = [recipe for recipe in recipes if recipe['id'] == recipe_id]
-	recipe[0]['title'] = request.json.get('title', recipe[0]['title'])
-	recipe[0]['description'] = request.json.get('description', recipe[0]['description'])
-	recipe[0]['stars'] = request.json.get('stars', recipe[0]['stars'])
-	return jsonify({'recip': recipe[0]})
+	try:
+		col = db.recipes.find_one({'id' : recipe_id})
+	
+		recipe = {
+				'id': col[u'id'],
+				'title': col[u'title'],
+				'description' : col[u'description'],
+				'stars' : col[u'stars']
+		}
+	except TypeError:
+		return not_found("Out of Range")
+
+	recipe['title'] = request.json.get('title', recipe['title'])
+	recipe['description'] = request.json.get('description')
+	recipe['stars'] = request.json.get('stars') 
+
+	if(recipe['title'] != None):
+		db.recipes.update({'id': recipe['id']}, {'$set' : {'title' : recipe['title']}})
+
+	if(recipe['description'] != None):
+		db.recipes.update({'id': recipe['id']}, {'$set' : {'description' : recipe['description']}})	
+
+	if(recipe['stars'] != None):
+		db.recipes.update({'id': recipe['id']}, {'$set' : {'stars' : recipe['stars']}})
+	
+	return jsonify({'recipe': recipe})
 
 # This is DELETE request to delete a recipe based on the ID
-@app.route('/api/1.0/recipies/<int:recipe_id>',methods=['DELETE'])
+@app.route('/api/1.0/recipes/<int:recipe_id>',methods=['DELETE'])
 def delete_recipe(recipe_id):
-    recipe = [recipe for recipe in recipes if recipe['id'] == recipe_id]
-    recipies.remove(recipe[0])
-    return jsonify({'result':True})
+	db.recipes.remove({'id' : recipe_id})
+	return jsonify({'result':True})
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)	
 
 
 if __name__ == '__main__':
